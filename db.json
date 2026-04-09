@@ -1,0 +1,20 @@
+{
+  "books": [
+    {
+      "title": "Harry Pọt Ter",
+      "image": "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80",
+      "id": "1"
+    },
+    {
+      "id": "2",
+      "title": "Waterfall",
+      "image": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      "title": "Hley",
+      "image": "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80",
+      "id": "5PtoeN1dMiI"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}

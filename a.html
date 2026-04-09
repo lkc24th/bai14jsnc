@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading List CRUD</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="container">
+        <h1>Reading List</h1>
+
+        <section class="book-grid" id="bookGrid"></section>
+
+        <section class="book-form-section">
+            <h2 id="formTitle">Add a Book</h2>
+            <form id="bookForm">
+                <input type="hidden" id="bookId">
+
+                <label for="title">Title</label>
+                <input id="title" type="text" placeholder="Enter title" required>
+
+                <label for="image">Image URL</label>
+                <input
+                    id="image"
+                    type="url"
+                    placeholder="https://example.com/book-image.jpg"
+                    required
+                >
+
+                <div class="actions">
+                    <button type="submit" id="submitBtn">Create!</button>
+                    <button type="button" id="cancelBtn" class="secondary" hidden>Cancel</button>
+                </div>
+            </form>
+            <p id="message" aria-live="polite"></p>
+        </section>
+    </main>
+
+    <template id="bookCardTemplate">
+        <article class="book-card">
+            <div class="card-actions">
+                <button type="button" class="edit-btn" title="Edit">Edit</button>
+                <button type="button" class="delete-btn" title="Delete">Delete</button>
+            </div>
+            <img class="book-image" src="" alt="Book cover">
+            <h3 class="book-title"></h3>
+        </article>
+    </template>
+
+    <script>
+        const API_URL = "http://localhost:3000/books";
+
+        const bookGrid = document.getElementById("bookGrid");
+        const bookForm = document.getElementById("bookForm");
+        const formTitle = document.getElementById("formTitle");
+        const submitBtn = document.getElementById("submitBtn");
+        const cancelBtn = document.getElementById("cancelBtn");
+        const message = document.getElementById("message");
+        const titleInput = document.getElementById("title");
+        const imageInput = document.getElementById("image");
+        const idInput = document.getElementById("bookId");
+        const cardTemplate = document.getElementById("bookCardTemplate");
+
+        function showMessage(text, isError = false) {
+            message.textContent = text;
+            message.className = isError ? "error" : "success";
+        }
+
+        function clearMessage() {
+            message.textContent = "";
+            message.className = "";
+        }
+
+        function resetForm() {
+            idInput.value = "";
+            titleInput.value = "";
+            imageInput.value = "";
+            formTitle.textContent = "Add a Book";
+            submitBtn.textContent = "Create!";
+            cancelBtn.hidden = true;
+        }
+
+        async function fetchBooks() {
+            clearMessage();
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error("Cannot fetch books from server.");
+                }
+
+                const books = await response.json();
+                renderBooks(books);
+            } catch (error) {
+                showMessage(error.message, true);
+            }
+        }
+
+        function renderBooks(books) {
+            bookGrid.innerHTML = "";
+
+            if (!books.length) {
+                bookGrid.innerHTML = '<p class="empty">No books yet. Add your first one.</p>';
+                return;
+            }
+
+            books.forEach((book) => {
+                const card = cardTemplate.content.firstElementChild.cloneNode(true);
+                const image = card.querySelector(".book-image");
+                const title = card.querySelector(".book-title");
+                const editBtn = card.querySelector(".edit-btn");
+                const deleteBtn = card.querySelector(".delete-btn");
+
+                image.src = book.image;
+                image.alt = book.title;
+                title.textContent = book.title;
+
+                editBtn.addEventListener("click", () => {
+                    idInput.value = book.id;
+                    titleInput.value = book.title;
+                    imageInput.value = book.image;
+                    formTitle.textContent = "Edit Book";
+                    submitBtn.textContent = "Update";
+                    cancelBtn.hidden = false;
+                    titleInput.focus();
+                });
+
+                deleteBtn.addEventListener("click", async () => {
+                    const shouldDelete = confirm(`Delete \"${book.title}\"?`);
+                    if (!shouldDelete) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${API_URL}/${book.id}`, {
+                            method: "DELETE"
+                        });
+                        if (!response.ok) {
+                            throw new Error("Delete failed.");
+                        }
+
+                        showMessage("Book deleted successfully.");
+                        if (idInput.value === String(book.id)) {
+                            resetForm();
+                        }
+                        fetchBooks();
+                    } catch (error) {
+                        showMessage(error.message, true);
+                    }
+                });
+
+                bookGrid.appendChild(card);
+            });
+        }
+
+        bookForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const book = {
+                title: titleInput.value.trim(),
+                image: imageInput.value.trim()
+            };
+
+            if (!book.title || !book.image) {
+                showMessage("Please fill all fields.", true);
+                return;
+            }
+
+            const editingId = idInput.value;
+            const isEditing = Boolean(editingId);
+
+            try {
+                const response = await fetch(isEditing ? `${API_URL}/${editingId}` : API_URL, {
+                    method: isEditing ? "PUT" : "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(book)
+                });
+
+                if (!response.ok) {
+                    throw new Error(isEditing ? "Update failed." : "Create failed.");
+                }
+
+                showMessage(isEditing ? "Book updated successfully." : "Book created successfully.");
+                resetForm();
+                fetchBooks();
+            } catch (error) {
+                showMessage(error.message, true);
+            }
+        });
+
+        cancelBtn.addEventListener("click", () => {
+            resetForm();
+            clearMessage();
+        });
+
+        fetchBooks();
+    </script>
+</body>
+</html>
